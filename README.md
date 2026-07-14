@@ -71,7 +71,7 @@ GRAALVM_HOME=/path/to/graalvm ./gradlew nativeCompile
 # 3. Run the binary. On an empty database the first start streams the IMDB
 #    dataset in natively (the ~1.2 GB of dataset files are downloaded once
 #    and cached in ./data); afterwards the import is skipped.
-./build/native/nativeCompile/storm-imdb-graal
+./build/native/nativeCompile/storm-imdb-graalvm
 
 # 4. Open the app
 open http://localhost:8080
@@ -164,7 +164,7 @@ the native binary:
 
 ```bash
 ./gradlew installPlaywrightBrowsers                # once
-./build/native/nativeCompile/storm-imdb-graal     # in one terminal
+./build/native/nativeCompile/storm-imdb-graalvm     # in one terminal
 ./gradlew e2eTest                                  # in another
 ```
 

@@ -1,1 +1,1 @@
-rootProject.name = "storm-imdb-graal"
+rootProject.name = "storm-imdb-graalvm"

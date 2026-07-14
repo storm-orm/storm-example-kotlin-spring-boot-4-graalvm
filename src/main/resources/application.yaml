@@ -1,6 +1,6 @@
 spring:
   application:
-    name: storm-imdb-graal
+    name: storm-imdb-graalvm
   autoconfigure:
     # This application uses Storm's coroutine-native suspend transaction { }
     # blocks exclusively. Suspend mode is incompatible with Spring-managed

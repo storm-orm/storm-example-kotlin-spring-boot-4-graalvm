@@ -109,7 +109,7 @@ graalvmNative {
     }
     binaries {
         named("main") {
-            imageName = "storm-imdb-graal"
+            imageName = "storm-imdb-graalvm"
         }
     }
 }
