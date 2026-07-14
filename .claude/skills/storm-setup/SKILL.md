@@ -1,0 +1,131 @@
+Help the user set up Storm ORM in their project.
+**Important:** Use Storm's JDBC-based API with `DataSource`. Do not add JPA/Hibernate dependencies unless the project already uses them. Storm has its own annotations (`@PK`, `@FK`, `@DbTable`, etc.) — use those instead of JPA annotations.
+
+Before suggesting dependencies, read the project's build file (pom.xml, build.gradle.kts, or build.gradle) to detect:
+- Build tool (Maven or Gradle)
+- Language and version (Kotlin version from kotlin plugin, Java version from sourceCompatibility/release)
+- Existing dependencies (Spring Boot, Ktor, database driver, etc.)
+- If no Storm version is specified in the project, use version `1.11.6`
+- If no Kotlin version is specified in the project, use the latest stable Kotlin release that Storm supports (any 2.0.x–2.4.x — the compiler plugin ships variants `storm-compiler-plugin-2.0` through `-2.4`)
+- KSP plugin versions are always prefixed with the Kotlin version: `<kotlin-version>-<ksp-release>` (e.g. `2.0.21-1.0.28` for Kotlin 2.0.21). Pick the KSP release matching the project's Kotlin version — a bare version like `2.3.6` is NOT a valid KSP plugin version
+- If no Spring Boot version is specified, use the current stable Spring Boot release (3.x works with `storm-jackson2`, 4.x with `storm-jackson3`)
+
+## Core Dependencies
+
+### Kotlin (Gradle) - Recommended
+
+**Important:** The KSP plugin version must match the project's Kotlin version — it is always `<kotlin-version>-<ksp-release>`. Declare it in `plugins { }`:
+```kotlin
+plugins {
+    kotlin("jvm") version "<kotlin-version>"
+    id("com.google.devtools.ksp") version "<kotlin-version>-<ksp-release>"  // e.g., 2.0.21-1.0.28 for Kotlin 2.0.21
+}
+```
+
+In Gradle, a `platform()` BOM only applies to the configuration where it's declared. The `ksp` and `kotlinCompilerPluginClasspath` configurations are separate — they do NOT inherit the BOM from `implementation`. You must apply the BOM to each configuration that needs it:
+
+```kotlin
+dependencies {
+    implementation(platform("st.orm:storm-bom:<version>"))
+    ksp(platform("st.orm:storm-bom:<version>"))
+    kotlinCompilerPluginClasspath(platform("st.orm:storm-bom:<version>"))
+
+    implementation("st.orm:storm-kotlin")
+    runtimeOnly("st.orm:storm-core")
+    ksp("st.orm:storm-metamodel-ksp")                          // version from BOM
+    kotlinCompilerPluginClasspath("st.orm:storm-compiler-plugin-<kotlin-major.minor>")  // version from BOM
+}
+```
+
+Match the compiler plugin suffix to the project's Kotlin version: 2.0.x uses `storm-compiler-plugin-2.0`, 2.1.x uses `storm-compiler-plugin-2.1`, and so on. Published variants: `-2.0`, `-2.1`, `-2.2`, `-2.3`, `-2.4` (Kotlin 2.0–2.4), all version-managed by the Storm BOM.
+
+### Kotlin (Maven)
+- Import `st.orm:storm-bom` in dependencyManagement
+- `st.orm:storm-kotlin`
+- `st.orm:storm-core` (runtime scope)
+- `st.orm:storm-metamodel-ksp` with `com.dyescape:kotlin-maven-symbol-processing` execution
+- `st.orm:storm-compiler-plugin-<kotlin-major.minor>` as a dependency of `kotlin-maven-plugin`
+- The compiler plugin must be listed under `<dependencies>` of the `kotlin-maven-plugin` configuration
+- Use `build-helper-maven-plugin` to add the KSP generated sources directory (`target/generated-sources/ksp`) as a source folder
+
+### Java (Maven)
+- Import `st.orm:storm-bom` in dependencyManagement
+- `st.orm:storm-java21`
+- `st.orm:storm-core` (runtime scope)
+- `st.orm:storm-metamodel-processor` (provided scope)
+- Requires `--enable-preview` in maven-compiler-plugin and maven-surefire-plugin
+
+### Spring Boot
+- Kotlin: `st.orm:storm-kotlin-spring-boot-starter` (replaces `storm-kotlin` + `storm-core`)
+- Java: `st.orm:storm-spring-boot-starter` (replaces `storm-java21` + `storm-core`)
+- These include auto-configuration: `ORMTemplate` is auto-registered as a Spring bean
+- The starters also auto-discover repository interfaces and register them as beans — no configuration needed. Only plain `storm-spring`/`storm-kotlin-spring` (without the starter) requires defining a `RepositoryBeanFactoryPostProcessor` with `repositoryBasePackages`
+
+### Ktor
+- Kotlin: `st.orm:storm-ktor`
+- Optionally: `st.orm:storm-ktor-test` (test scope, for `testStormApplication` DSL)
+- Add `com.zaxxer:HikariCP` when using the built-in HOCON-configured DataSource (`storm.datasource.jdbcUrl` etc. in application.conf) — not needed when passing your own DataSource to `install(Storm)`
+- Install with `install(Storm)`, access ORM via `call.orm` in routes
+- Register repositories via `stormRepositories { register(UserRepository::class) }`
+
+## Getting ORMTemplate
+
+```kotlin
+// Extension property (most common)
+val orm = dataSource.orm
+
+// With custom decorator (e.g., name resolvers)
+val orm = dataSource.orm { decorator ->
+    decorator.withTableNameResolver(TableNameResolver.toUpperCase(TableNameResolver.DEFAULT))
+}
+
+// Factory method
+val orm = ORMTemplate.of(dataSource)
+
+// Spring Boot: injected automatically
+@Service
+class UserService(private val orm: ORMTemplate)
+```
+
+Serialization (pick one if needed):
+- `st.orm:storm-kotlinx-serialization` for kotlinx-serialization
+- `st.orm:storm-jackson2` for Jackson 2 (Spring Boot 3.x)
+- `st.orm:storm-jackson3` for Jackson 3 (Spring Boot 4.x)
+
+Testing:
+- `st.orm:storm-test` (test scope) — provides `@StormTest`, `SqlCapture`, and H2 in-memory database support
+- `st.orm:storm-h2` (test runtime scope) — Storm's H2 dialect
+- `com.h2database:h2:2.3.232` (test runtime scope) — the H2 JDBC driver itself (required — the driver is not a transitive dependency of `storm-h2`, and H2 is **not** version-managed by the Storm BOM, so specify the version explicitly)
+- All three are needed. Without the H2 driver, `@StormTest` fails with `No suitable driver found`.
+- Key imports: `st.orm.test.StormTest`, `st.orm.test.SqlCapture`, `st.orm.test.CapturedSql.Operation`
+- `@StormTest` injects `ORMTemplate` and `SqlCapture` as test method parameters
+- Schema SQL files go in `src/test/resources/`
+
+**Kotlin/Gradle test dependencies:** Use the JUnit BOM directly — avoid `kotlin("test")` which can cause dependency conflicts:
+```kotlin
+dependencies {
+    testImplementation(platform("org.junit:junit-bom:5.11.4"))
+    testImplementation("org.junit.jupiter:junit-jupiter")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    testImplementation("st.orm:storm-test")
+    testRuntimeOnly("st.orm:storm-h2")
+    testRuntimeOnly("com.h2database:h2:2.3.232")  // not in Storm BOM — version required
+}
+```
+
+Database dialects (add as runtime dependency):
+- `st.orm:storm-postgresql`
+- `st.orm:storm-mysql`
+- `st.orm:storm-mariadb`
+- `st.orm:storm-oracle`
+- `st.orm:storm-mssqlserver`
+- `st.orm:storm-sqlite`
+- `st.orm:storm-h2` (also usable as a runtime dialect, not just for tests)
+
+**Validation on startup:** Storm automatically validates the *structure* of all discovered entity types (PK/FK/inline consistency, cyclic references) when the `ORMTemplate` is created, logging "Successfully validated N Data types for correctness". This does NOT check the database schema. Schema validation is a separate, opt-in step: call `validateSchema()`/`validateSchemaOrThrow()` (e.g. at startup or in a `@StormTest`), or in Ktor set `storm.validation.schemaMode` in the plugin config to run it automatically at startup.
+
+After configuring dependencies, remind the user to rebuild so the metamodel classes are generated.
+
+Use the version already in the project's BOM, or `1.11.6` for new projects.
+
+<!-- storm-managed: storm-docs -->
