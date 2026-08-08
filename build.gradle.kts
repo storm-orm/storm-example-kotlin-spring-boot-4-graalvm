@@ -9,7 +9,7 @@ plugins {
     id("org.graalvm.buildtools.native") version "0.11.1"
     // The Storm plugin imports the BOM, adds storm-kotlin and storm-core, wires the
     // metamodel processor to KSP, and selects the compiler-plugin variant matching Kotlin.
-    id("st.orm") version "1.13.0"
+    id("st.orm") version "1.13.1"
 }
 
 group = "st.orm.demo"
