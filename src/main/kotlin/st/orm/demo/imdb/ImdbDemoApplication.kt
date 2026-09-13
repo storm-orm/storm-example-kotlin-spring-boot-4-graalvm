@@ -3,10 +3,12 @@ package st.orm.demo.imdb
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan
 import org.springframework.boot.runApplication
+import org.springframework.scheduling.annotation.EnableScheduling
 import org.springframework.context.annotation.ImportRuntimeHints
 
 @SpringBootApplication
 @ConfigurationPropertiesScan
+@EnableScheduling
 @ImportRuntimeHints(ApplicationRuntimeHints::class)
 class ImdbDemoApplication
 
