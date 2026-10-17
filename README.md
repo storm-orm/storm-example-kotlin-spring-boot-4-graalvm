@@ -174,7 +174,10 @@ Storm generates. `EntitySchemaValidationTest` runs on PostgreSQL instead, throug
 `@StormTest(database = POSTGRESQL)`: Storm starts a Testcontainers-managed
 PostgreSQL once per test run and applies the Flyway migration to it, so the
 entities are validated against the schema and dialect the application deploys
-with. That one test needs Docker, like running the application does.
+with. `WatchlistSliceTest`, the `@DataStormTest` slice, runs on that container too,
+through `@DataStormTest(database = POSTGRESQL)`, because the migration it applies
+is written for PostgreSQL. These two tests need Docker, like running the
+application does.
 
 The Playwright interface tests run against a live application, which can be
 the native binary:

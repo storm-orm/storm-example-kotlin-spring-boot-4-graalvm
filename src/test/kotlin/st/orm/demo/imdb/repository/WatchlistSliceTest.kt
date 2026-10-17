@@ -13,21 +13,24 @@ import org.springframework.test.context.jdbc.Sql
 import org.springframework.test.context.transaction.TestTransaction
 import st.orm.demo.imdb.model.Watchlist
 import st.orm.spring.boot.test.DataStormTest
+import st.orm.test.TestDatabase
 import java.time.Instant
 
 /**
  * The @DataStormTest slice: the counterpart of @DataJpaTest for Storm. Unlike the @StormTest-based
  * tests in this package, which test data logic without a Spring context, the slice sees what production
  * code sees — repositories as Spring beans, the Spring-managed transaction, and SQL failures translated
- * to Spring's DataAccessException hierarchy. The properties attribute points the slice at an in-memory
- * database. Flyway creates the schema exactly as in production, the fixture loads once through @Sql,
- * and each test's own writes roll back afterwards.
+ * to Spring's DataAccessException hierarchy. The database attribute points the slice at a
+ * Testcontainers-managed PostgreSQL. Flyway creates the schema exactly as in production, the fixture
+ * loads once through @Sql, and each test's own writes roll back afterwards.
  */
 @TestMethodOrder(OrderAnnotation::class)
-// The slice replaces the PostgreSQL DataSource with an embedded database on Boot 3 and 4 alike.
+// The slice replaces the application's DataSource with a PostgreSQL container on Boot 3 and 4 alike:
+// the migration is written for PostgreSQL (trigram indexes, unaccent), so it does not run on H2.
 // Flyway (included in the slice) creates the schema, as in production; the schema.sql used by the
 // @StormTest classes stays out of the way.
 @DataStormTest(
+    database = TestDatabase.POSTGRESQL,
     properties = [
         "spring.sql.init.mode=never",
         // The application excludes the Spring transaction bridge because it uses the coroutine-native
