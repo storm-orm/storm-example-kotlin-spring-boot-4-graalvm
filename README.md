@@ -28,10 +28,13 @@ or simply do not work. Storm avoids those mechanisms by design:
 Since 1.13, Storm ships everything it needs itself: storm-core and
 storm-foundation carry GraalVM reachability metadata for their internal
 proxies and resources, and storm-spring contributes Spring AOT hints that
-register every entity, repository, and repository proxy automatically, driven
-by the compile-time type index. Repository scanning registers AOT-compatible
-FactoryBean definitions, so scanned repositories work in a native image
-without any configuration.
+register every entity and repository automatically, driven by the
+compile-time type index. On GraalVM for JDK 24 and up, Storm writes a class
+for each repository interface during the image build, so the image calls the
+repository directly and keeps only the methods the app uses; on an older
+GraalVM each repository is a JDK proxy. Repository scanning registers
+AOT-compatible FactoryBean definitions, so scanned repositories work in a
+native image without any configuration.
 
 What is left is declared in
 [`ApplicationRuntimeHints`](src/main/kotlin/st/orm/demo/imdb/ApplicationRuntimeHints.kt),
@@ -106,7 +109,7 @@ internet access.
 ```
 src/main/kotlin/st/orm/demo/imdb/
 ├── ApplicationRuntimeHints.kt  The application's native-image hints (see above)
-├── model/          Storm entities (@PK, @FK) and projections
+├── model/          Storm entities (@PK, @FK)
 ├── repository/     EntityRepository interfaces with QueryBuilder queries
 ├── service/        Business logic in suspend `transaction { }` blocks,
 │                   plus the streaming IMDB importer
@@ -126,8 +129,8 @@ Each part of the app demonstrates a Storm feature:
 - **Entities** (`model/`): immutable data classes with `@PK`, `@FK`, `@UK`,
   and composite keys (`MovieGenre`, `Principal`). `MovieView` and `PersonGallery`
   hold their foreign keys as `Ref`, so writing one never joins the referenced
-  graph; `MovieSummary` / `PersonSummary` are projections that select a subset
-  of columns.
+  graph. Each table has one entity, and the list pages, search and
+  suggestions read it too.
 - **Repositories** (`repository/`): `EntityRepository` interfaces with default
   methods using the type-safe QueryBuilder and generated metamodel
   (`Movie_.startYear`, `Principal_.person`). Aggregations return plain data

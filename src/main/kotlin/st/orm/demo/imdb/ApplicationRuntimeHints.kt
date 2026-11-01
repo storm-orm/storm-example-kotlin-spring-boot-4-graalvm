@@ -8,9 +8,9 @@ import org.springframework.context.annotation.ClassPathScanningCandidateComponen
 
 /**
  * The application's own reachability metadata. Storm ships its native-image
- * metadata with storm-core and registers entities, repositories, and their
- * proxies through the Spring AOT hints in storm-spring, so everything below
- * is an application concern, not a Storm one:
+ * metadata with storm-core and registers entities and repositories through
+ * the Spring AOT hints in storm-spring, so everything below is an
+ * application concern, not a Storm one:
  *
  * - **Templates**: Thymeleaf evaluates expressions through SpEL, which
  *   invokes methods reflectively on whatever the expressions touch: the
