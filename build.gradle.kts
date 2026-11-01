@@ -8,7 +8,7 @@ plugins {
     id("org.graalvm.buildtools.native") version "0.11.1"
     // The Storm plugin imports the BOM, adds storm-kotlin and storm-core, wires the
     // metamodel processor to KSP, and selects the compiler-plugin variant matching Kotlin.
-    id("st.orm") version "1.15.1"
+    id("st.orm") version "1.16.0"
 }
 
 group = "st.orm.demo"
@@ -21,6 +21,8 @@ java {
 }
 
 repositories {
+    // Storm 1.16.0 is resolved from the local Maven repository until it is on Maven Central.
+    mavenLocal()
     mavenCentral()
 }
 
@@ -76,6 +78,10 @@ tasks.test {
     useJUnitPlatform {
         excludeTags("e2e")
     }
+    // The tests run on H2, where Storm serves a suggestion as a prefix of the column, having no substring index to
+    // lean on. Production runs on PostgreSQL with a trigram index (V1): a word of three characters is matched anywhere
+    // and a shorter one at the start of a word. The tests render the searches as production does.
+    systemProperty("storm.search.min_term_length", "3")
 }
 
 // Playwright interface tests run against the live application: start the
