@@ -5,8 +5,10 @@ import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RestController
+import st.orm.demo.imdb.model.Person
 import st.orm.demo.imdb.model.Photo
 import st.orm.demo.imdb.service.PersonGalleryService
+import st.orm.template.refById
 
 /**
  * Photo galleries for the person detail pages. The page fetches the gallery
@@ -17,7 +19,7 @@ class GalleryApiController(private val personGalleryService: PersonGalleryServic
 
     @GetMapping("/api/gallery/person/{personId}")
     fun personGallery(@PathVariable personId: String): ResponseEntity<List<Photo>> = runBlocking {
-        personGalleryService.findGallery(personId)
+        personGalleryService.findGallery(refById<Person>(personId))
             ?.let { ResponseEntity.ok(it) }
             ?: ResponseEntity.notFound().build()
     }
