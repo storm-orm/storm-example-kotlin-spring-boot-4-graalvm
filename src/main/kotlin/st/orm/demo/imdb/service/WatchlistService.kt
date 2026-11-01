@@ -2,6 +2,8 @@ package st.orm.demo.imdb.service
 
 import org.springframework.stereotype.Service
 import st.orm.Page
+import st.orm.Ref
+import st.orm.demo.imdb.model.Movie
 import st.orm.demo.imdb.model.Watchlist
 import st.orm.demo.imdb.repository.MovieRepository
 import st.orm.demo.imdb.repository.WatchlistRepository
@@ -23,8 +25,8 @@ class WatchlistService(
      * could silently skip it. In Spring Boot the transaction delegates to
      * Spring's transaction manager.
      */
-    suspend fun toggle(movieId: String): Boolean = transaction {
-        val movie = movieRepository.getById(movieId)
+    suspend fun toggle(movieRef: Ref<Movie>): Boolean = transaction {
+        val movie = movieRepository.getByRef(movieRef)
         if (watchlistRepository.existsById(movie)) {
             watchlistRepository.removeById(movie)
             false

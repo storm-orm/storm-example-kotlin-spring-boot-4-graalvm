@@ -9,15 +9,17 @@ import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.server.ResponseStatusException
+import st.orm.demo.imdb.model.Movie
 import st.orm.demo.imdb.service.MovieService
 import st.orm.demo.imdb.service.WatchlistService
+import st.orm.template.refById
 
 @Controller
 class MovieController(private val movieService: MovieService) {
 
     @GetMapping("/movie/{movieId}")
     fun movieDetail(@PathVariable movieId: String, model: Model): String = runBlocking {
-        val detail = movieService.viewMovie(movieId)
+        val detail = movieService.viewMovie(refById<Movie>(movieId))
             ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Unknown movie: $movieId")
         model.addAttribute("detail", detail)
         "movie"
@@ -29,6 +31,6 @@ class WatchlistApiController(private val watchlistService: WatchlistService) {
 
     @PostMapping("/api/watchlist/{movieId}")
     fun toggle(@PathVariable movieId: String): WatchlistState = runBlocking {
-        WatchlistState(onWatchlist = watchlistService.toggle(movieId))
+        WatchlistState(onWatchlist = watchlistService.toggle(refById<Movie>(movieId)))
     }
 }
